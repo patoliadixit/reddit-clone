@@ -55,6 +55,9 @@ exports.UserResolver = void 0;
 var type_graphql_1 = require("type-graphql");
 var User_1 = require("../entity/User");
 var argon2_1 = __importDefault(require("argon2"));
+var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+var dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 var UserResolver = /** @class */ (function () {
     function UserResolver() {
     }
@@ -91,6 +94,40 @@ var UserResolver = /** @class */ (function () {
             });
         });
     };
+    UserResolver.prototype.login = function (usernameOrEmail, password) {
+        return __awaiter(this, void 0, void 0, function () {
+            var property, user, isMatch, payload, token;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        property = "username";
+                        if (usernameOrEmail.includes("@")) {
+                            property = "email";
+                        }
+                        return [4 /*yield*/, User_1.User.findOne((_a = {}, _a[property] = usernameOrEmail, _a))];
+                    case 1:
+                        user = _b.sent();
+                        if (!user) {
+                            throw new Error("no_user_found");
+                        }
+                        return [4 /*yield*/, argon2_1.default.verify(user.password, password)];
+                    case 2:
+                        isMatch = _b.sent();
+                        if (!isMatch) {
+                            throw new Error("wrong_password");
+                        }
+                        payload = {
+                            user: {
+                                username: user.username,
+                            },
+                        };
+                        token = jsonwebtoken_1.default.sign(payload, process.env.SECRET_KEY);
+                        return [2 /*return*/, token];
+                }
+            });
+        });
+    };
     __decorate([
         type_graphql_1.Query(function () { return [User_1.User]; }),
         __metadata("design:type", Function),
@@ -98,7 +135,7 @@ var UserResolver = /** @class */ (function () {
         __metadata("design:returntype", Promise)
     ], UserResolver.prototype, "allUsers", null);
     __decorate([
-        type_graphql_1.Mutation(function () { return type_graphql_1.ID; }),
+        type_graphql_1.Mutation(function () { return String; }),
         __param(0, type_graphql_1.Arg("username")),
         __param(1, type_graphql_1.Arg("password")),
         __param(2, type_graphql_1.Arg("email")),
@@ -106,6 +143,14 @@ var UserResolver = /** @class */ (function () {
         __metadata("design:paramtypes", [String, String, String]),
         __metadata("design:returntype", Promise)
     ], UserResolver.prototype, "register", null);
+    __decorate([
+        type_graphql_1.Mutation(function () { return String; }),
+        __param(0, type_graphql_1.Arg("usernameOrEmail")),
+        __param(1, type_graphql_1.Arg("password")),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [String, String]),
+        __metadata("design:returntype", Promise)
+    ], UserResolver.prototype, "login", null);
     UserResolver = __decorate([
         type_graphql_1.Resolver()
     ], UserResolver);
